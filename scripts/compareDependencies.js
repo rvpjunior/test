@@ -10,26 +10,17 @@ const loadDeps = (file) => {
   return JSON.parse(fs.readFileSync(file, "utf-8")).dependencies || {};
 };
 
-// Extract dependencies (up to 2 levels) and exclude deduplicated ones
+// Extract dependencies (up to 2 levels)
 const extractDeps = (deps) => {
   const result = {};
-  const traverse = (pkg, path = []) => {
-    if (!pkg || pkg.resolved) return; // Ignore deduplicated dependencies
-
-    const pkgPath = path.join(" > ");
-    result[pkgPath] = pkg.version || "unknown";
-
-    if (pkg.dependencies) {
-      Object.entries(pkg.dependencies).forEach(([subPkg, subPkgData]) => {
-        traverse(subPkgData, [...path, subPkg]);
+  Object.keys(deps).forEach((pkg) => {
+    result[pkg] = deps[pkg].version || "unknown";
+    if (deps[pkg].dependencies) {
+      Object.keys(deps[pkg].dependencies).forEach((subPkg) => {
+        result[`${pkg} > ${subPkg}`] = deps[pkg].dependencies[subPkg].version || "unknown";
       });
     }
-  };
-
-  Object.entries(deps).forEach(([pkg, pkgData]) => {
-    traverse(pkgData, [pkg]);
   });
-
   return result;
 };
 
@@ -37,7 +28,7 @@ const mainDeps = extractDeps(loadDeps(mainDepsFile));
 const prDeps = extractDeps(loadDeps(prDepsFile));
 
 // Compare dependencies
-let report = "### 📦 Dependency Changes (Up to 2 Levels, Excluding Deduplicated)\n\n";
+let report = "### 📦 Dependency Changes (Up to 2 Levels)\n\n";
 report += "**🔍 Analyzing dependency changes...**\n\n";
 report += "| Dependency | Change |\n";
 report += "|------------|--------|\n";
