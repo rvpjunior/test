@@ -1,35 +1,82 @@
-name: Analyze PR
+name: Compare Code Coverage
 
 on:
-  pull_request
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  analyze:
+  compare-coverage:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: '16'  # Ou a versão que você utiliza
+          node-version: 18
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci  # Ou yarn install --frozen-lockfile
 
-      - name: Run tests and generate coverage report
+      - name: Run tests with coverage (PR branch)
+        run: npm test -- --coverage # Ajuste conforme seu framework (ex: Jest, Mocha)
+
+      - name: Save coverage report (PR branch)
+        run: cp coverage/lcov.info coverage-pr.lcov
+
+      - name: Checkout main branch
         run: |
-          npm test -- --coverage
+          git fetch origin main
+          git checkout main
 
-      - name: NPM Lockfile Changes
-        if: contains(github.event.pull_request.changed_files, 'package-lock.json')
-        uses: codepunkt/npm-lockfile-changes@main
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install dependencies (main branch)
+        run: npm ci
 
-      - name: Coverage Comment
-        uses: ewjoachim/coverage-comment-action@v1
+      - name: Run tests with coverage (main branch)
+        run: npm test -- --coverage
+
+      - name: Save coverage report (main branch)
+        run: cp coverage/lcov.info coverage-main.lcov
+
+      - name: Install lcov parser
+        run: npm install -g lcov-summary
+
+      - name: Compare coverage
+        run: |
+          echo "### 📊 Code Coverage Comparison" > comment.txt
+          echo "" >> comment.txt
+
+          echo "**🔍 Analyzing coverage changes...**" >> comment.txt
+
+          # Parse coverage
+          lcov-summary coverage-main.lcov > coverage-main.txt
+          lcov-summary coverage-pr.lcov > coverage-pr.txt
+
+          # Extract relevant data
+          echo "| File | Coverage Change |" >> comment.txt
+          echo "|------|----------------|" >> comment.txt
+
+          while read -r line; do
+            FILE=$(echo $line | awk '{print $1}')
+            MAIN_COV=$(grep "^$FILE " coverage-main.txt | awk '{print $2}' | sed 's/%//')
+            PR_COV=$(grep "^$FILE " coverage-pr.txt | awk '{print $2}' | sed 's/%//')
+
+            if [[ -n "$MAIN_COV" && -n "$PR_COV" ]]; then
+              CHANGE=$(awk "BEGIN {printf \"%.2f\", $PR_COV - $MAIN_COV}")
+              if (( $(echo "$CHANGE < 0" | bc -l) )); then
+                SYMBOL="🔴" # Coverage dropped
+              elif (( $(echo "$CHANGE > 0" | bc -l) )); then
+                SYMBOL="🟢" # Coverage increased
+              else
+                SYMBOL="⚪" # No change
+              fi
+              echo "| $FILE | $SYMBOL $CHANGE% |" >> comment.txt
+            fi
+          done < coverage-pr.txt
+
+      - name: Comment on PR
+        uses: thollander/actions-comment-pull-request@v2
         with:
-          coverage-file: coverage/coverage-final.json
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          filePath: comment.txt
