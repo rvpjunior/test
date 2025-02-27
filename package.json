@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "formik": "^2.4.6",
     "lodash": "^4.17.21"
   },
   "devDependencies": {
