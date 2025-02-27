@@ -44,6 +44,6 @@ jobs:
         run: node scripts/compareCoverage.js
 
       - name: Comment on PR
-        uses: thollander/actions-comment-pull-request@v2
+        uses: thollander/actions-comment-pull-request@v3
         with:
-          filePath: coverage-comment.txt
+          file-path: coverage-comment.txt
