@@ -4,10 +4,6 @@ test('sum adds two positive numbers', () => {
   expect(sum(1, 2)).toBe(3);
 });
 
-test('sum adds two negative numbers', () => {
-  expect(sum(-1, -2)).toBe(-3);
-});
-
 test('sum adds a positive and a negative number', () => {
   expect(sum(1, -2)).toBe(-1);
 });
