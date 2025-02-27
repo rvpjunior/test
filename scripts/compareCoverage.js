@@ -1,6 +1,5 @@
 const fs = require("fs");
 const path = require("path");
-const { execSync } = require("child_process");
 
 const coverageMainFile = "coverage-main.lcov";
 const coveragePrFile = "coverage-pr.lcov";
@@ -43,9 +42,8 @@ prCoverage.forEach((prCov, file) => {
   const mainCov = mainCoverage.get(file) || 0;
   const change = (prCov - mainCov).toFixed(2);
 
-  if (change !== "0.00") { // Ignore "No Change"
-    const symbol = change < 0 ? "🔴" : "🟢";
-    report += `| ${file} | ${symbol} ${change}% |\n`;
+  if (change < 0) {
+    report += `| ${file} | 🔴 ${change}% |\n`;
   }
 });
 
