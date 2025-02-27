@@ -1,82 +1,19 @@
 name: Compare Code Coverage
 
 on:
-  pull_request:
-    branches:
-      - main
+  pull_request
 
 jobs:
-  compare-coverage:
+  coverage-comparison:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout PR branch
-        uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Compare Code Coverage
+        uses: byronfichardt/code-coverage-compare@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          node-version: 18
-
-      - name: Install dependencies
-        run: npm ci  # Ou yarn install --frozen-lockfile
-
-      - name: Run tests with coverage (PR branch)
-        run: npm test -- --coverage # Ajuste conforme seu framework (ex: Jest, Mocha)
-
-      - name: Save coverage report (PR branch)
-        run: cp coverage/lcov.info coverage-pr.lcov
-
-      - name: Checkout main branch
-        run: |
-          git fetch origin main
-          git checkout main
-
-      - name: Install dependencies (main branch)
-        run: npm ci
-
-      - name: Run tests with coverage (main branch)
-        run: npm test -- --coverage
-
-      - name: Save coverage report (main branch)
-        run: cp coverage/lcov.info coverage-main.lcov
-
-      - name: Install lcov parser
-        run: npm install -g lcov-summary
-
-      - name: Compare coverage
-        run: |
-          echo "### 📊 Code Coverage Comparison" > comment.txt
-          echo "" >> comment.txt
-
-          echo "**🔍 Analyzing coverage changes...**" >> comment.txt
-
-          # Parse coverage
-          lcov-summary coverage-main.lcov > coverage-main.txt
-          lcov-summary coverage-pr.lcov > coverage-pr.txt
-
-          # Extract relevant data
-          echo "| File | Coverage Change |" >> comment.txt
-          echo "|------|----------------|" >> comment.txt
-
-          while read -r line; do
-            FILE=$(echo $line | awk '{print $1}')
-            MAIN_COV=$(grep "^$FILE " coverage-main.txt | awk '{print $2}' | sed 's/%//')
-            PR_COV=$(grep "^$FILE " coverage-pr.txt | awk '{print $2}' | sed 's/%//')
-
-            if [[ -n "$MAIN_COV" && -n "$PR_COV" ]]; then
-              CHANGE=$(awk "BEGIN {printf \"%.2f\", $PR_COV - $MAIN_COV}")
-              if (( $(echo "$CHANGE < 0" | bc -l) )); then
-                SYMBOL="🔴" # Coverage dropped
-              elif (( $(echo "$CHANGE > 0" | bc -l) )); then
-                SYMBOL="🟢" # Coverage increased
-              else
-                SYMBOL="⚪" # No change
-              fi
-              echo "| $FILE | $SYMBOL $CHANGE% |" >> comment.txt
-            fi
-          done < coverage-pr.txt
-
-      - name: Comment on PR
-        uses: thollander/actions-comment-pull-request@v2
-        with:
-          filePath: comment.txt
+          coverage-tool: 'xdebug'
+          target-branch: 'main'
