@@ -38,14 +38,21 @@ report += "**🔍 Analyzing coverage changes...**\n\n";
 report += "| File | Coverage Change |\n";
 report += "|------|----------------|\n";
 
+let downgradeDetected = false;
+
 prCoverage.forEach((prCov, file) => {
   const mainCov = mainCoverage.get(file) || 0;
   const change = (prCov - mainCov).toFixed(2);
 
   if (change < 0) {
     report += `| ${file} | 🔴 ${change}% |\n`;
+    downgradeDetected = true;
   }
 });
+
+if (!downgradeDetected) {
+  report += "| No downgrade of coverage detected | ✅ |\n";
+}
 
 fs.writeFileSync(outputFile, report);
 console.log("✅ Coverage comparison written to", outputFile);
