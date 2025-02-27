@@ -38,14 +38,15 @@ const allDeps = new Set([...Object.keys(mainDeps), ...Object.keys(prDeps)]);
 let changesFound = false;
 
 allDeps.forEach((dep) => {
-  const pkgPath = dep.includes(" > ");
-  const mainVersion = mainDeps[dep] || "🚫 Not present";
+  let mainVersion;
   let prVersion;
   if (dep.includes(" > ")) {
     const [_, subPkg] = dep.split(" > ");
+    mainVersion = mainDeps[subPkg] || mainDeps[dep] || "🚫 Not present";
     prVersion = prDeps[subPkg] || prDeps[dep] || "🚫 Removed";
   } else {
-    prVersion = prDeps[dep] || "🚫 Not present";
+    mainVersion = mainDeps[dep] || "🚫 Not present";
+    prVersion = prDeps[dep] || "🚫 Removed";
   }
 
   if (mainVersion !== prVersion) {
