@@ -1,0 +1,44 @@
+name: Compare Dependencies
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  compare-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies (PR branch)
+        run: npm ci
+
+      - name: Generate dependency tree (PR branch)
+        run: npm ls --depth=2 --json > dependencies-pr.json || echo "{}" > dependencies-pr.json
+
+      - name: Checkout main branch
+        run: |
+          git fetch origin main
+          git checkout main
+
+      - name: Install dependencies (main branch)
+        run: npm ci
+
+      - name: Generate dependency tree (main branch)
+        run: npm ls --depth=2 --json > dependencies-main.json || echo "{}" > dependencies-main.json
+
+      - name: Compare dependencies with Node.js
+        run: node scripts/compareDependencies.js
+
+      - name: Comment on PR
+        uses: thollander/actions-comment-pull-request@v3
+        with:
+          file-path: dependencies-comment.txt
+          github-token: ${{ secrets.GB_TOKEN }}
