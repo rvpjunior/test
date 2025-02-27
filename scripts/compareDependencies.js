@@ -17,10 +17,8 @@ const extractDeps = (deps) => {
     result[pkg] = deps[pkg].version || "unknown";
     if (deps[pkg].dependencies) {
       Object.keys(deps[pkg].dependencies).forEach((subPkg) => {
-        if (deps[pkg].dependencies[subPkg].resolved !== undefined) {
-          result[`${pkg} > ${subPkg}`] =
-            deps[pkg].dependencies[subPkg].version || "unknown";
-        }
+        result[`${pkg} > ${subPkg}`] =
+          deps[pkg].dependencies[subPkg].version || "unknown";
       });
     }
   });
