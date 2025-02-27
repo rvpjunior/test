@@ -31,5 +31,5 @@ jobs:
       - name: Coverage Comment
         uses: ewjoachim/coverage-comment-action@v1
         with:
-          coverage-file: coverage/coverage.xml
+          coverage-file: coverage/coverage-final.json
           github-token: ${{ secrets.GITHUB_TOKEN }}
