@@ -47,4 +47,4 @@ jobs:
         uses: thollander/actions-comment-pull-request@v3
         with:
           file-path: coverage-comment.txt
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GB_TOKEN }}
