@@ -42,10 +42,10 @@ let downgradeDetected = false;
 
 prCoverage.forEach((prCov, file) => {
   const mainCov = mainCoverage.get(file) || 0;
-  const change = (prCov - mainCov).toFixed(2);
+  const change = prCov - mainCov;
 
   if (change < 0) {
-    report += `| ${file} | 🔴 ${change}% |\n`;
+    report += `| ${file} | 🔴 ${change.toFixed(2)}% |\n`;
     downgradeDetected = true;
   }
 });
