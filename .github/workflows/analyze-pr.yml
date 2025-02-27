@@ -1,19 +1,26 @@
-name: Compare Code Coverage
+name: Coverage Diff
 
 on:
-  pull_request
+  push:
+    branches:
+      - master
+      - main
+  pull_request: {}
 
 jobs:
-  coverage-comparison:
+  test:
+    name: Coverage Diff
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
 
-      - name: Compare Code Coverage
-        uses: byronfichardt/code-coverage-compare@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
         with:
-          coverage-tool: 'xdebug'
-          target-branch: 'main'
+          node-version: 16
+          cache: npm
+      - run: npm install
+      - run: npm run test
+      - name: Coverage Diff
+        uses: greatwizard/coverage-diff-action@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
