@@ -24,7 +24,7 @@ jobs:
         run: npm test -- --coverage
 
       - name: Save coverage report (PR branch)
-        run: cp coverage/lcov.info coverage-pr.lcov
+        run: cp coverage/lcov-report/index.html coverage-pr.html
 
       - name: Checkout main branch
         run: |
@@ -38,7 +38,7 @@ jobs:
         run: npm test -- --coverage
 
       - name: Save coverage report (main branch)
-        run: cp coverage/lcov.info coverage-main.lcov
+        run: cp coverage/lcov-report/index.html coverage-main.html
 
       - name: Compare coverage with Node.js
         run: node scripts/compareCoverage.js

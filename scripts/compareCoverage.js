@@ -1,57 +1,72 @@
 const fs = require("fs");
-const path = require("path");
+const cheerio = require('cheerio');
 
-const coverageMainFile = "coverage-main.lcov";
-const coveragePrFile = "coverage-pr.lcov";
+const coverageMainFile = "coverage-main.html";
+const coveragePrFile = "coverage-pr.html";
 const outputFile = "coverage-comment.txt";
 
-// Ensure files exist
 if (!fs.existsSync(coverageMainFile) || !fs.existsSync(coveragePrFile)) {
   console.error("❌ Coverage files not found.");
   process.exit(1);
 }
 
-// Parse LCOV files
-const parseLcov = (filePath) => {
-  const lines = fs.readFileSync(filePath, "utf-8").split("\n");
+const parseHtml = (filePath) => {
+  const htmlFile = fs.readFileSync(filePath, 'utf8');
+  const $ = cheerio.load(htmlFile);
   const coverageMap = new Map();
 
-  let currentFile = null;
-  for (const line of lines) {
-    if (line.startsWith("SF:")) {
-      currentFile = path.basename(line.slice(3)); // Extract filename
-    } else if (line.startsWith("LF:") && currentFile) {
-      const totalLines = parseInt(line.split(":")[1], 10);
-      const hitLines = parseInt(lines.find(l => l.startsWith("LH:")).split(":")[1], 10);
-      const coverage = ((hitLines / totalLines) * 100).toFixed(2);
-      coverageMap.set(currentFile, parseFloat(coverage));
-    }
-  }
+  $('table tbody tr').each((_, row) => {
+    const cols = $(row).find('td, th').map((_, col) => $(col).text().trim()).get();
+    
+    if (cols.length >= 5) {
+        const file = cols[0];
+        const stmtPct = cols[2];
+        const branchPct = cols[4];
+
+        coverageMap.set(file, {
+          statementCoverage: parseFloat(stmtPct),
+          branchCoverage: parseFloat(branchPct),
+        });
+    }})
+  
+
   return coverageMap;
 };
 
-const mainCoverage = parseLcov(coverageMainFile);
-const prCoverage = parseLcov(coveragePrFile);
+const mainCoverage = parseHtml(coverageMainFile);
+const prCoverage = parseHtml(coveragePrFile);
 
 let report = "### 📊 Code Coverage Comparison\n\n";
 report += "**🔍 Analyzing coverage changes...**\n\n";
-report += "| File | Coverage Change |\n";
-report += "|------|----------------|\n";
+report += "| File | Line Coverage Change | Branch Coverage Change |\n";
+report += "|------|----------------------|-----------------------|\n";
 
 let downgradeDetected = false;
 
 prCoverage.forEach((prCov, file) => {
-  const mainCov = mainCoverage.get(file) || 0;
-  const change = prCov - mainCov;
+  const mainCov = mainCoverage.get(file) || {
+    statementCoverage: 100,
+    branchCoverage: 0,
+  };
+  const lineChange = prCov.statementCoverage - mainCov.statementCoverage;
+  const branchChange = prCov.branchCoverage - mainCov.branchCoverage;
 
-  if (change < 0) {
-    report += `| ${file} | 🔴 ${change.toFixed(2)}% |\n`;
+  if (lineChange < 0 && branchChange < 0) {
+    report += `| ${file} | 🔴 ${lineChange.toFixed(
+      2
+    )}% | 🔴 ${branchChange.toFixed(2)}% |\n`;
+    downgradeDetected = true;
+  } else if (lineChange < 0) {
+    report += `| ${file} | 🔴 ${lineChange.toFixed(2)}% | N/A |\n`;
+    downgradeDetected = true;
+  } else if (branchChange < 0) {
+    report += `| ${file} | N/A | 🔴 ${branchChange.toFixed(2)}% |\n`;
     downgradeDetected = true;
   }
 });
 
 if (!downgradeDetected) {
-  report += "| No downgrade of coverage detected | ✅ |\n";
+  report += "| No downgrade of coverage detected | ✅ | ✅ |\n";
 }
 
 fs.writeFileSync(outputFile, report);
